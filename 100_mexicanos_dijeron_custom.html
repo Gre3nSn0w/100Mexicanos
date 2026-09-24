@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>100 Mexicanos Dijeron - Tablero Personalizable</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --neon-blue: #00e5ff;
+            --dark-blue: #002266;
+            --glow-blue: rgba(0, 229, 255, 0.6);
+            --neon-yellow: #ffea00;
+            --glow-yellow: rgba(255, 234, 0, 0.7);
+            --red-strike: #ff0000;
+            --bg-color: #000a1f;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at center, #001133 0%, #000000 100%);
+            font-family: 'Oswald', sans-serif;
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .font-impact {
+            font-family: 'Anton', sans-serif;
+            letter-spacing: 2px;
+        }
+
+        /* Setup View Styles */
+        .setup-container {
+            background: rgba(0, 10, 31, 0.9);
+            border: 2px solid var(--neon-blue);
+            box-shadow: 0 0 15px var(--glow-blue);
+        }
+
+        .input-field {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--dark-blue);
+            color: white;
+            padding: 0.5rem;
+            width: 100%;
+            border-radius: 0.25rem;
+            outline: none;
+        }
+        .input-field:focus {
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 5px var(--glow-blue);
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: var(--dark-blue);
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+        }
+        .btn-primary:hover {
+            background: var(--neon-blue);
+            color: black;
+            box-shadow: 0 0 10px var(--glow-blue);
+        }
+        .btn-danger {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid red;
+            color: red;
+        }
+        .btn-danger:hover {
+            background: red;
+            color: white;
+        }
+        .btn-start {
+            background: linear-gradient(90deg, #0055ff, #00aaff);
+            border: none;
+            color: white;
+            font-size: 1.25rem;
+            padding: 1rem 2rem;
+            box-shadow: 0 0 15px var(--glow-blue);
+        }
+        .btn-start:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px var(--glow-blue);
+        }
+
+        /* Game Board Styles */
+        .score-board {
+            background: #000;
+            border: 4px solid var(--neon-blue);
+            box-shadow: 0 0 20px var(--glow-blue), inset 0 0 20px var(--glow-blue);
+            border-radius: 12px;
+            text-align: center;
+        }
+        .score-value {
+            font-size: 3.5rem;
+            line-height: 1;
+            color: white;
+            text-shadow: 0 0 10px #fff, 0 0 20px var(--neon-blue);
+        }
+        .round-points-board {
+            border-color: var(--neon-yellow);
+            box-shadow: 0 0 20px var(--glow-yellow), inset 0 0 20px var(--glow-yellow);
+        }
+        .round-points-board .score-value {
+            color: var(--neon-yellow);
+            text-shadow: 0 0 10px #fff, 0 0 20px var(--neon-yellow);
+        }
+
+        /* 3D Flip Cards */
+        .slot-container {
+            perspective: 1500px;
+            height: 70px;
+            width: 100%;
+        }
+        @media (min-width: 768px) { .slot-container { height: 90px; } }
+
+        .slot-flipper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+        .slot-flipper.flipped {
+            transform: rotateX(180deg);
+        }
+
+        .slot-front, .slot-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            border-radius: 8px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8), 0 0 15px var(--glow-blue);
+            border: 3px solid #0055ff;
+        }
+        .slot-front {
+            background: linear-gradient(180deg, #0044cc 0%, #001144 100%);
+            justify-content: center;
+        }
+        .slot-front .number {
+            font-size: 3rem;
+            color: white;
+            text-shadow: 0 0 10px var(--glow-blue), 2px 2px 4px #000;
+        }
+        .slot-back {
+            background: linear-gradient(180deg, #001a33 0%, #000000 100%);
+            transform: rotateX(180deg);
+            padding: 0;
+            overflow: hidden;
+            border-color: var(--neon-yellow);
+            box-shadow: inset 0 0 15px rgba(255, 234, 0, 0.3), 0 0 15px var(--glow-yellow);
+        }
+        .slot-back .answer-text {
+            flex-grow: 1;
+            padding: 0 20px;
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            text-align: left;
+            text-shadow: 2px 2px 4px #000;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        @media (min-width: 768px) { .slot-back .answer-text { font-size: 2.2rem; } }
+
+        .slot-back .answer-points {
+            width: 80px;
+            height: 100%;
+            background: linear-gradient(180deg, #003399 0%, #001133 100%);
+            border-left: 3px solid var(--neon-yellow);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 10px var(--glow-yellow), 2px 2px 4px #000;
+        }
+
+        /* Strike Overlay */
+        #strike-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        #strike-overlay.active { opacity: 1; }
+        .strike-mark {
+            font-family: 'Anton', sans-serif;
+            font-size: 25vw;
+            color: var(--red-strike);
+            text-shadow: 0 0 50px #ff0000, 0 0 100px #ff0000, 10px 10px 0px #8b0000;
+            margin: 0 20px;
+            transform: scale(0);
+            transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .strike-mark.show { transform: scale(1); }
+
+        /* Host Controls */
+        .host-panel {
+            background: rgba(0,0,0,0.8);
+            border-top: 2px solid #333;
+            backdrop-filter: blur(5px);
+        }
+        .host-btn {
+            background: #222;
+            border: 1px solid #555;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .host-btn:hover { background: #444; }
+        .host-btn.strike-btn { border-color: red; color: #ff5555; }
+        .host-btn.strike-btn:hover { background: #550000; color: white; }
+        .host-btn.award-btn { border-color: var(--neon-yellow); color: var(--neon-yellow); }
+        .host-btn.award-btn:hover { background: #555500; color: white; }
+    </style>
+</head>
+<body class="flex flex-col relative">
+
+    <div id="setup-view" class="flex-grow flex flex-col items-center py-10 px-4">
+        <h1 class="text-4xl font-impact text-cyan-400 mb-8 tracking-wider text-center drop-shadow-[0_0_10px_rgba(0,229,255,0.8)]">
+            CONFIGURACION DEL JUEGO
+        </h1>
+        
+        <div class="setup-container w-full max-w-4xl p-6 rounded-xl">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div>
+                    <label class="block text-cyan-200 mb-2 uppercase tracking-wide">Nombre Equipo 1</label>
+                    <input type="text" id="team1-input" class="input-field text-xl font-bold" value="FAMILIA 1">
+                </div>
+                <div>
+                    <label class="block text-cyan-200 mb-2 uppercase tracking-wide">Nombre Equipo 2</label>
+                    <input type="text" id="team2-input" class="input-field text-xl font-bold" value="FAMILIA 2">
+                </div>
+            </div>
+
+            <div class="border-t border-blue-900 pt-6 mb-6">
+                <h2 class="text-2xl font-impact text-white mb-4">PREGUNTAS</h2>
+                <div id="questions-container" class="space-y-6">
+                    <!-- Preguntas renderizadas dinámicamente aquí -->
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center border-t border-blue-900 pt-6">
+                <button onclick="addQuestion()" class="btn btn-primary">
+                    + AGREGAR OTRA PREGUNTA
+                </button>
+                <button onclick="startGame()" class="btn btn-start font-impact tracking-widest">
+                    INICIAR JUEGO
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-view" class="hidden flex-grow flex-col justify-between h-screen">
+        
+        <header class="w-full max-w-7xl mx-auto p-4 flex justify-between items-start mt-2 z-10">
+            <div class="flex flex-col items-center w-1/3">
+                <h2 id="team1-display" class="text-2xl md:text-3xl font-impact tracking-widest mb-2 text-blue-300 uppercase text-center w-full truncate">FAMILIA 1</h2>
+                <div class="score-board w-32 md:w-48 h-20 md:h-24 flex items-center justify-center">
+                    <span id="team1-score" class="score-value font-impact">0</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col items-center w-1/3 transform scale-110">
+                <h2 class="text-xl md:text-2xl font-impact tracking-widest mb-1 text-yellow-500 uppercase">BANCO</h2>
+                <div class="score-board round-points-board w-32 md:w-48 h-20 md:h-24 flex items-center justify-center">
+                    <span id="round-points" class="score-value font-impact">0</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col items-center w-1/3">
+                <h2 id="team2-display" class="text-2xl md:text-3xl font-impact tracking-widest mb-2 text-blue-300 uppercase text-center w-full truncate">FAMILIA 2</h2>
+                <div class="score-board w-32 md:w-48 h-20 md:h-24 flex items-center justify-center">
+                    <span id="team2-score" class="score-value font-impact">0</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-grow flex flex-col items-center justify-center w-full max-w-6xl mx-auto p-4 z-10">
+            <div class="text-center mb-6 w-full px-4">
+                <h1 id="question-display" class="text-2xl md:text-4xl text-white font-bold uppercase drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">
+                    <!-- Pregunta activa -->
+                </h1>
+            </div>
+
+            <div class="w-full bg-black/60 p-4 md:p-8 rounded-2xl border-4 border-blue-900 shadow-[0_0_50px_rgba(0,34,102,1)] backdrop-blur-sm">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3" id="board-slots">
+                    <!-- Slots del tablero inyectados por JS -->
+                </div>
+            </div>
+        </main>
+
+        <footer class="host-panel w-full p-4 flex flex-wrap justify-between items-center gap-4 z-50">
+            <div class="flex gap-2">
+                <button class="host-btn strike-btn" onclick="triggerStrike(1)">1 Error (X)</button>
+                <button class="host-btn strike-btn" onclick="triggerStrike(2)">2 Errores (XX)</button>
+                <button class="host-btn strike-btn" onclick="triggerStrike(3)">3 Errores (XXX)</button>
+            </div>
+            
+            <div class="flex gap-2">
+                <button class="host-btn award-btn" onclick="awardBank(1)">Asignar Banco a Eq 1</button>
+                <button class="host-btn award-btn" onclick="awardBank(2)">Asignar Banco a Eq 2</button>
+            </div>
+
+            <div class="flex gap-2">
+                <button class="host-btn" onclick="prevQuestion()">PREGUNTA ANT.</button>
+                <button class="host-btn" onclick="nextQuestion()">PREGUNTA SIG.</button>
+                <button class="host-btn" style="border-color:#777;" onclick="backToSetup()">VOLVER A CONF.</button>
+            </div>
+        </footer>
+    </div>
+
+    <div id="strike-overlay">
+        <div class="strike-mark" id="strike-1">X</div>
+        <div class="strike-mark" id="strike-2">X</div>
+        <div class="strike-mark" id="strike-3">X</div>
+    </div>
+
+    <script>
+        // --- ESTADO DE CONFIGURACIÓN Y JUEGO ---
+        // Se inicializa con una pregunta en blanco para que el usuario la llene.
+        let setupData = [
+            { question: "", answers: [{ text: "", points: "" }] }
+        ];
+
+        let gameQuestions = [];
+        let currentQuestionIndex = 0;
+        let team1Name = "FAMILIA 1";
+        let team2Name = "FAMILIA 2";
+        let team1Score = 0;
+        let team2Score = 0;
+        let bankPoints = 0;
+        let activeAnswers = [];
+
+        // --- SISTEMA DE AUDIO (Tone.js) ---
+        let synthRevealed, synthStrike;
+        let audioInitialized = false;
+
+        async function initAudio() {
+            if (audioInitialized) return;
+            try {
+                await Tone.start();
+                synthRevealed = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.01, decay: 0.1, sustain: 0.3, release: 1 }
+                }).toDestination();
+                synthRevealed.volume.value = -5;
+
+                synthStrike = new Tone.Synth({
+                    oscillator: { type: "sawtooth" },
+                    envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.5 }
+                }).toDestination();
+                synthStrike.volume.value = 0;
+                audioInitialized = true;
+            } catch (e) {
+                console.warn("Audio no pudo iniciar", e);
+            }
+        }
+
+        // --- LÓGICA DE LA VISTA DE CONFIGURACIÓN ---
+        function renderSetupView() {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = '';
+
+            setupData.forEach((qData, qIndex) => {
+                const qBlock = document.createElement('div');
+                qBlock.className = 'bg-black/40 p-4 rounded border border-blue-900';
+                
+                let answersHtml = '';
+                qData.answers.forEach((aData, aIndex) => {
+                    answersHtml += `
+                        <div class="flex gap-2 mb-2">
+                            <span class="text-gray-500 font-bold w-6 text-right pt-2">${aIndex + 1}.</span>
+                            <input type="text" placeholder="Respuesta" class="input-field flex-grow" 
+                                value="${aData.text}" oninput="updateAnswerText(${qIndex}, ${aIndex}, this.value)">
+                            <input type="number" placeholder="Puntos" class="input-field w-24" 
+                                value="${aData.points}" oninput="updateAnswerPoints(${qIndex}, ${aIndex}, this.value)">
+                            <button onclick="removeAnswer(${qIndex}, ${aIndex})" class="btn btn-danger px-2 py-1 text-sm font-bold" title="Eliminar respuesta">X</button>
+                        </div>
+                    `;
+                });
+
+                qBlock.innerHTML = `
+                    <div class="flex justify-between items-center mb-3">
+                        <label class="text-cyan-400 font-bold uppercase">Pregunta ${qIndex + 1}</label>
+                        <button onclick="removeQuestion(${qIndex})" class="text-red-500 hover:text-red-400 text-sm font-bold tracking-wider uppercase">Eliminar Pregunta</button>
+                    </div>
+                    <input type="text" placeholder="Escribe la pregunta aquí..." class="input-field text-lg mb-4 font-bold" 
+                        value="${qData.question}" oninput="updateQuestionText(${qIndex}, this.value)">
+                    
+                    <div class="pl-4 border-l-2 border-blue-900">
+                        <label class="block text-gray-400 text-sm mb-2 uppercase">Respuestas (Máximo 8)</label>
+                        ${answersHtml}
+                        ${qData.answers.length < 8 ? `<button onclick="addAnswer(${qIndex})" class="btn btn-primary text-sm mt-2">+ Agregar Respuesta</button>` : ''}
+                    </div>
+                `;
+                container.appendChild(qBlock);
+            });
+        }
+
+        function updateQuestionText(qIndex, val) { setupData[qIndex].question = val; }
+        function updateAnswerText(qIndex, aIndex, val) { setupData[qIndex].answers[aIndex].text = val; }
+        function updateAnswerPoints(qIndex, aIndex, val) { setupData[qIndex].answers[aIndex].points = val; }
+
+        function addQuestion() {
+            setupData.push({ question: "", answers: [{ text: "", points: "" }] });
+            renderSetupView();
+        }
+
+        function removeQuestion(index) {
+            if (setupData.length > 1) {
+                setupData.splice(index, 1);
+                renderSetupView();
+            } else {
+                alert("Debes tener al menos una pregunta.");
+            }
+        }
+
+        function addAnswer(qIndex) {
+            if (setupData[qIndex].answers.length < 8) {
+                setupData[qIndex].answers.push({ text: "", points: "" });
+                renderSetupView();
+            }
+        }
+
+        function removeAnswer(qIndex, aIndex) {
+            if (setupData[qIndex].answers.length > 1) {
+                setupData[qIndex].answers.splice(aIndex, 1);
+                renderSetupView();
+            }
+        }
+
+        // --- TRANSICIÓN A JUEGO ---
+        function startGame() {
+            // Validar y limpiar datos
+            gameQuestions = [];
+            let isValid = true;
+
+            setupData.forEach(q => {
+                if (!q.question.trim()) isValid = false;
+                let validAnswers = q.answers.filter(a => a.text.trim() !== "" && a.points !== "");
+                if (validAnswers.length === 0) isValid = false;
+                
+                // Formatear para el juego
+                if (q.question.trim() && validAnswers.length > 0) {
+                    gameQuestions.push({
+                        question: q.question.trim(),
+                        answers: validAnswers.map(a => ({
+                            text: a.text.trim(),
+                            points: parseInt(a.points) || 0
+                        })).sort((a, b) => b.points - a.points) // Ordenar por puntos mayor a menor
+                    });
+                }
+            });
+
+            if (!isValid || gameQuestions.length === 0) {
+                alert("Por favor asegúrate de que todas las preguntas tengan texto y al menos una respuesta válida con puntos.");
+                return;
+            }
+
+            team1Name = document.getElementById('team1-input').value.trim() || "FAMILIA 1";
+            team2Name = document.getElementById('team2-input').value.trim() || "FAMILIA 2";
+            
+            document.getElementById('team1-display').innerText = team1Name;
+            document.getElementById('team2-display').innerText = team2Name;
+
+            // Reiniciar estado del juego
+            currentQuestionIndex = 0;
+            team1Score = 0;
+            team2Score = 0;
+            bankPoints = 0;
+
+            document.getElementById('setup-view').classList.add('hidden');
+            document.getElementById('game-view').classList.remove('hidden');
+            document.getElementById('game-view').classList.add('flex');
+            
+            initAudio(); // Preparar audio al iniciar
+            loadQuestionToBoard();
+        }
+
+        function backToSetup() {
+            document.getElementById('game-view').classList.add('hidden');
+            document.getElementById('game-view').classList.remove('flex');
+            document.getElementById('setup-view').classList.remove('hidden');
+        }
+
+        // --- LÓGICA DEL TABLERO DE JUEGO ---
+        function updateScoreboardUI() {
+            document.getElementById('team1-score').innerText = team1Score;
+            document.getElementById('team2-score').innerText = team2Score;
+            document.getElementById('round-points').innerText = bankPoints;
+        }
+
+        function loadQuestionToBoard() {
+            const board = document.getElementById('board-slots');
+            const qData = gameQuestions[currentQuestionIndex];
+            
+            document.getElementById('question-display').innerText = qData.question;
+            board.innerHTML = '';
+            
+            activeAnswers = [...qData.answers];
+            bankPoints = 0;
+            updateScoreboardUI();
+
+            // Siempre crear 8 casillas visualmente, ocultando las que no se usan
+            for (let i = 0; i < 8; i++) {
+                const slotDiv = document.createElement('div');
+                slotDiv.className = 'slot-container';
+                
+                if (i < activeAnswers.length) {
+                    const ans = activeAnswers[i];
+                    slotDiv.innerHTML = `
+                        <div class="slot-flipper" id="flipper-${i}" onclick="revealAnswer(${i})">
+                            <div class="slot-front">
+                                <span class="number font-impact">${i + 1}</span>
+                            </div>
+                            <div class="slot-back font-impact">
+                                <div class="answer-text">${ans.text}</div>
+                                <div class="answer-points">${ans.points}</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Casilla vacía / apagada
+                    slotDiv.innerHTML = `
+                        <div class="slot-flipper" style="cursor: default;">
+                            <div class="slot-front" style="opacity: 0.1; border-color: #001133; background: transparent; box-shadow: none;">
+                            </div>
+                        </div>
+                    `;
+                }
+                board.appendChild(slotDiv);
+            }
+        }
+
+        function revealAnswer(index) {
+            initAudio();
+            const flipper = document.getElementById(`flipper-${index}`);
+            
+            if (!flipper.classList.contains('flipped')) {
+                flipper.classList.add('flipped');
+                
+                if (audioInitialized) {
+                    synthRevealed.triggerAttackRelease(["C5", "E5", "G5"], "8n");
+                }
+
+                // Sumar al banco central
+                bankPoints += activeAnswers[index].points;
+                updateScoreboardUI();
+            }
+        }
+
+        function triggerStrike(count) {
+            initAudio();
+            const overlay = document.getElementById('strike-overlay');
+            const marks = [
+                document.getElementById('strike-1'),
+                document.getElementById('strike-2'),
+                document.getElementById('strike-3')
+            ];
+
+            marks.forEach(m => m.classList.remove('show'));
+            overlay.classList.add('active');
+
+            if (audioInitialized) {
+                synthStrike.triggerAttackRelease("C2", "0.5");
+            }
+
+            // Animación de aparición
+            setTimeout(() => {
+                for (let i = 0; i < count; i++) {
+                    setTimeout(() => {
+                        marks[i].classList.add('show');
+                    }, i * 200);
+                }
+            }, 50);
+
+            // Ocultar después de 2 segundos
+            setTimeout(() => {
+                overlay.classList.remove('active');
+                setTimeout(() => {
+                    marks.forEach(m => m.classList.remove('show'));
+                }, 200);
+            }, 2000);
+        }
+
+        function awardBank(teamNumber) {
+            if (bankPoints === 0) return;
+            
+            if (teamNumber === 1) {
+                team1Score += bankPoints;
+            } else {
+                team2Score += bankPoints;
+            }
+            bankPoints = 0;
+            updateScoreboardUI();
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < gameQuestions.length - 1) {
+                currentQuestionIndex++;
+                loadQuestionToBoard();
+            } else {
+                alert("Esta es la última pregunta.");
+            }
+        }
+
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                loadQuestionToBoard();
+            }
+        }
+
+        // Inicializar la vista de configuración
+        window.onload = () => {
+            renderSetupView();
+        };
+
+    </script>
+</body>
+</html>
